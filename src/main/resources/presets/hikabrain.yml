@@ -1,0 +1,6 @@
+# Profils HikaBrain (flat, peu de vertical, combos fluides)
+profiles:
+  - { baseH: 0.40, baseV: 0.22, minY: 0.08, clampY: 0.28, airMultH: 1.02, airMultV: 0.75, sideBoost: 0.02, backBoost: 0.04 }
+  - { baseH: 0.41, baseV: 0.23, minY: 0.09, clampY: 0.29, airMultH: 1.03, airMultV: 0.76, sideBoost: 0.03, backBoost: 0.05 }
+  - { baseH: 0.39, baseV: 0.21, minY: 0.08, clampY: 0.27, airMultH: 1.01, airMultV: 0.74, sideBoost: 0.02, backBoost: 0.05 }
+  - { baseH: 0.40, baseV: 0.24, minY: 0.10, clampY: 0.30, airMultH: 1.02, airMultV: 0.78, sideBoost: 0.03, backBoost: 0.05 }
