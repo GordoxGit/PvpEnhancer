@@ -1,0 +1,15 @@
+name: PvPEnhancer
+main: com.example.pvpenhancer.PvPEnhancerPlugin
+version: 1.4.0
+api-version: "1.21"
+description: PvP intelligent (presets) pour Spigot/Paper 1.21
+
+commands:
+  pvp:
+    description: PvPEnhancer command
+    usage: /pvp help
+    aliases: [pvpenhancer]
+permissions:
+  pvpe.admin:
+    description: Admin access to PvPEnhancer
+    default: op
