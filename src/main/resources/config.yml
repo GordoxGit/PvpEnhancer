@@ -1,0 +1,36 @@
+allowed-worlds:
+  - "*"
+
+intelligent-kb:
+  enabled: true
+  mode: AUTO  # AUTO | HIKABRAIN | ARENA
+  resample-seconds: 20       # re-prend un preset aléatoire après Xs sans hit significatif
+  ema-alpha: 0.30            # lissage des changements de preset
+  # détecteur pour AUTO
+  detector:
+    below-air-check: 4
+    hit-weight-near-void: 2.0
+    wall-proximity-weight: 0.6
+    world-name-hints:
+      hika: 3.0
+      bridge: 3.0
+      arena: 1.0
+    switch-threshold: 8.0
+    decay-per-second: 1.0
+
+# QOL
+fall-damage: false
+disable-item-drops: true
+
+# garantir un minimum de dégâts par coup (évite les "no damage")
+ensure-hit-damage:
+  enabled: true
+  min-hearts: 0.5
+
+feel:
+  hit-sound: ENTITY_PLAYER_ATTACK_STRONG
+  victim-sound: ENTITY_PLAYER_HURT
+  particles: CRIT
+  combo-actionbar: false
+
+debug: false
