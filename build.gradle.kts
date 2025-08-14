@@ -1,6 +1,6 @@
 plugins { java }
 group = "com.example"
-version = "2.2.0"
+version = "2.2.1"
 
 repositories {
   maven("https://hub.spigotmc.org/nexus/content/repositories/snapshots/")

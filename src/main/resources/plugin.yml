@@ -1,6 +1,6 @@
 name: PvPEnhancer
 main: com.example.pvpenhancer.PvPEnhancerPlugin
-version: 2.2.0
+version: 2.2.1
 api-version: "1.21"
 description: PvP adaptatif et par joueur basé sur l'IA avec Résonance Rythmique pour Spigot/Paper 1.21
 

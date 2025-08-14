@@ -31,6 +31,8 @@ public class PvpListener implements Listener {
 
     private boolean intelligentKb;
 
+    private boolean intentVectoringEnabled; private double verticalSculptFactor; private double horizontalSculptFactor; private double activationThreshold;
+
     private boolean rhythmResonanceEnabled; private double maxDeviationFactor;
 
     private boolean debug;
@@ -60,6 +62,12 @@ public class PvpListener implements Listener {
         dynamicMaxPitch = (float) c.getDouble("feel.dynamic-audio.max-pitch", 1.6);
 
         intelligentKb = c.getBoolean("intelligent-kb.enabled", true);
+
+        intentVectoringEnabled = c.getBoolean("intent-vectoring.enabled", true);
+        verticalSculptFactor = c.getDouble("intent-vectoring.vertical-sculpt-factor", 0.02);
+        horizontalSculptFactor = c.getDouble("intent-vectoring.horizontal-sculpt-factor", 0.015);
+        activationThreshold = c.getDouble("intent-vectoring.activation-threshold", 1.5);
+
         rhythmResonanceEnabled = c.getBoolean("rhythm-resonance.enabled", true);
         maxDeviationFactor = c.getDouble("rhythm-resonance.max-deviation-factor", 0.10);
         plugin.reloadAllEngines();
@@ -135,6 +143,11 @@ public class PvpListener implements Listener {
             ProjectileSource ps = proj.getShooter();
             if (ps instanceof Player p) attacker = p;
         }
+
+        final Player finalAttacker = attacker;
+        final float startPitch = (attacker != null) ? attacker.getLocation().getPitch() : 0f;
+        final float startYaw = (attacker != null) ? attacker.getLocation().getYaw() : 0f;
+        final double[] deltas = {0.0, 0.0};
 
         double purityScore = 1.0;
         long now = System.currentTimeMillis();
@@ -213,7 +226,7 @@ public class PvpListener implements Listener {
         if (!(vic instanceof Player)) return;
         final Player victimPlayer = (Player) vic;
         final IntelligentEngine engine = plugin.getEngineForPlayer(victimPlayer);
-        final Player atk = attacker;
+        final Player atk = finalAttacker;
         final Entity damager = e.getDamager();
         final Vector playerInputVector = getPlayerDirectionalInput(victimPlayer);
         final double attackCooldown = (attacker != null) ? attacker.getAttackCooldown() : 1.0;
@@ -321,6 +334,25 @@ public class PvpListener implements Listener {
                 }
             }
 
+            if (intentVectoringEnabled) {
+                double deltaPitch = deltas[0];
+                double deltaYaw = deltas[1];
+                if (Math.abs(deltaPitch) > activationThreshold && deltaPitch < 0) {
+                    double horizontalMagnitude = new Vector(kb.getX(), 0, kb.getZ()).length();
+                    double conversion = horizontalMagnitude * Math.abs(deltaPitch) * verticalSculptFactor;
+                    kb.setY(kb.getY() + conversion);
+                }
+                if (Math.abs(deltaYaw) > activationThreshold) {
+                    double angle = Math.toRadians(deltaYaw * horizontalSculptFactor);
+                    double cos = Math.cos(angle);
+                    double sin = Math.sin(angle);
+                    double x = finalKb.getX();
+                    double z = finalKb.getZ();
+                    finalKb.setX(x * cos - z * sin);
+                    finalKb.setZ(x * sin + z * cos);
+                }
+            }
+
             finalKb.setY(kb.getY());
 
             boolean wouldVoid = wouldFallIntoVoid(victimPlayer, kb);
@@ -336,7 +368,17 @@ public class PvpListener implements Listener {
             }
         };
 
-        Bukkit.getScheduler().runTask(plugin, applyKb);
+        if (finalAttacker != null) {
+            Bukkit.getScheduler().runTaskLaterAsynchronously(plugin, () -> {
+                float endPitch = finalAttacker.getLocation().getPitch();
+                float endYaw = finalAttacker.getLocation().getYaw();
+                deltas[0] = endPitch - startPitch;
+                deltas[1] = endYaw - startYaw;
+                Bukkit.getScheduler().runTask(plugin, applyKb);
+            }, 2L);
+        } else {
+            Bukkit.getScheduler().runTask(plugin, applyKb);
+        }
     }
 
     private Vector getPlayerDirectionalInput(Player player) {
