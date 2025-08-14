@@ -30,6 +30,8 @@ public class PvpListener implements Listener {
 
     private boolean intelligentKb;
 
+    private boolean rhythmResonanceEnabled; private double maxDeviationFactor;
+
     private boolean debug;
 
     public PvpListener(PvPEnhancerPlugin plugin) {
@@ -52,6 +54,8 @@ public class PvpListener implements Listener {
         particles = c.getString("feel.particles", "CRIT");
 
         intelligentKb = c.getBoolean("intelligent-kb.enabled", true);
+        rhythmResonanceEnabled = c.getBoolean("rhythm-resonance.enabled", true);
+        maxDeviationFactor = c.getDouble("rhythm-resonance.max-deviation-factor", 0.10);
         plugin.reloadAllEngines();
 
         debug = c.getBoolean("debug", false);
@@ -118,9 +122,23 @@ public class PvpListener implements Listener {
             if (ps instanceof Player p) attacker = p;
         }
 
+        double purityScore = 1.0;
+        long now = System.currentTimeMillis();
         if (attacker != null) {
             IntelligentEngine atkEngine = plugin.getEngineForPlayer(attacker);
+            long last = atkEngine.getLastHitTimestamp();
+            long interval = (last > 0) ? (now - last) : 0;
+            if (last > 0 && interval < 2000) {
+                atkEngine.addHitInterval(interval);
+            }
+            atkEngine.setLastHitTimestamp(now);
             atkEngine.recordHit();
+
+            double tempo = atkEngine.getPlayerTempo();
+            if (interval > 0 && tempo > 0) {
+                double diff = Math.abs(interval - tempo);
+                purityScore = 1.0 - Math.min(diff / tempo, 1.0);
+            }
         }
 
         if (soundVictim != null && !soundVictim.isEmpty()) {
@@ -149,18 +167,26 @@ public class PvpListener implements Listener {
         final Vector playerInputVector = getPlayerDirectionalInput(victimPlayer);
         final double attackCooldown = (attacker != null) ? attacker.getAttackCooldown() : 1.0;
         final Vector atkVelocity = (attacker != null) ? attacker.getVelocity().clone() : null;
-        final Vector atkLookDir = (attacker != null) ? attacker.getLocation().getDirection().clone().setY(0).normalize() : null;
+        final Vector atkLookDir;
+        if (attacker != null) {
+            Vector look = attacker.getLocation().getDirection().clone().setY(0);
+            atkLookDir = (look.lengthSquared() > 0.0001) ? look.normalize() : null;
+        } else {
+            atkLookDir = null;
+        }
         final Vector atkMoveDir;
         if (attacker != null && atkVelocity != null) {
             Vector horiz = atkVelocity.clone().setY(0);
             if (horiz.lengthSquared() > 0.0001) {
                 atkMoveDir = horiz.normalize();
             } else {
-                atkMoveDir = attacker.getLocation().getDirection().clone().setY(0).normalize();
+                Vector look = attacker.getLocation().getDirection().clone().setY(0);
+                atkMoveDir = (look.lengthSquared() > 0.0001) ? look.normalize() : null;
             }
         } else {
             atkMoveDir = null;
         }
+        final double purity = purityScore;
 
         Runnable applyKb = () -> {
             Vector dir;
@@ -185,7 +211,8 @@ public class PvpListener implements Listener {
 
             // directionnal bonuses
             if (atk != null) {
-                Vector atkDir = atk.getLocation().getDirection().clone().setY(0).normalize();
+                Vector look = atk.getLocation().getDirection().clone().setY(0);
+                Vector atkDir = (look.lengthSquared() > 0.0001) ? look.normalize() : new Vector(0, 0, 0);
                 Vector toVic = vic.getLocation().toVector().subtract(atk.getLocation().toVector()).setY(0);
                 if (toVic.lengthSquared() > 0.0001) {
                     toVic.normalize();
@@ -232,6 +259,15 @@ public class PvpListener implements Listener {
                 double randX = (Math.random() - 0.5) * spamFactor * 0.2 * kb.length();
                 double randZ = (Math.random() - 0.5) * spamFactor * 0.2 * kb.length();
                 finalKb.add(new Vector(randX, 0, randZ));
+            }
+
+            if (rhythmResonanceEnabled && purity < 1.0) {
+                double deviationStrength = (1.0 - purity) * maxDeviationFactor;
+                Vector deviation = new Vector(Math.random() - 0.5, 0, Math.random() - 0.5);
+                if (deviation.lengthSquared() > 0.0001) {
+                    deviation.normalize();
+                    finalKb.add(deviation.multiply(kb.length() * deviationStrength));
+                }
             }
 
             finalKb.setY(kb.getY());

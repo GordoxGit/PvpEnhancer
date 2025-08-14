@@ -4,6 +4,8 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.util.Vector;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -59,6 +61,11 @@ public class IntelligentEngine {
     // track directional influence performance
     private int successfulInfluenceSaves = 0;
 
+    // rhythm resonance tracking
+    private final List<Long> hitIntervals = new ArrayList<>();
+    private long lastHitTimestamp = 0;
+    private double playerTempo = 500; // Tempo de base en ms
+
     public IntelligentEngine(PvPEnhancerPlugin plugin) {
         this.plugin = plugin;
         this.smooth = new Profile();
@@ -77,6 +84,17 @@ public class IntelligentEngine {
         this.maxIaAdjustment = cfg.getDouble("directional-influence.max-ia-adjustment", 0.10);
         this.smooth.influenceStrength = this.baseInfluenceStrength;
     }
+
+    // Rhythm resonance helpers
+    public long getLastHitTimestamp() { return lastHitTimestamp; }
+    public void setLastHitTimestamp(long ts) { this.lastHitTimestamp = ts; }
+    public void addHitInterval(long interval) {
+        hitIntervals.add(interval);
+        if (hitIntervals.size() > 10) {
+            hitIntervals.remove(0);
+        }
+    }
+    public double getPlayerTempo() { return playerTempo; }
 
     /**
      * Loads configuration parameters used to control the adaptive knockback engine.
@@ -186,6 +204,14 @@ public class IntelligentEngine {
             lastTickDecay = now;
             updateMetrics(secs);
             updateKnockbackProfile();
+
+            if (!hitIntervals.isEmpty()) {
+                long total = 0;
+                for (long interval : hitIntervals) {
+                    total += interval;
+                }
+                playerTempo = total / (double) hitIntervals.size();
+            }
         }
     }
 
