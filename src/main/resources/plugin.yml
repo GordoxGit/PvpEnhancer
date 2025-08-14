@@ -1,6 +1,6 @@
 name: PvPEnhancer
 main: com.example.pvpenhancer.PvPEnhancerPlugin
-version: 3.0.0
+version: 3.0.1
 api-version: "1.21"
 description: PvP adaptatif et par joueur basé sur l'IA avec Physique d'Impact Contextuelle pour Spigot/Paper 1.21
 

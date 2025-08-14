@@ -150,13 +150,26 @@ public class PvpListener implements Listener {
         final double attackCooldown = (attacker != null) ? attacker.getAttackCooldown() : 1.0;
         final Vector atkVelocity = (attacker != null) ? attacker.getVelocity().clone() : null;
         final Vector atkLookDir = (attacker != null) ? attacker.getLocation().getDirection().clone().setY(0).normalize() : null;
+        final Vector atkMoveDir;
+        if (attacker != null && atkVelocity != null) {
+            Vector horiz = atkVelocity.clone().setY(0);
+            if (horiz.lengthSquared() > 0.0001) {
+                atkMoveDir = horiz.normalize();
+            } else {
+                atkMoveDir = attacker.getLocation().getDirection().clone().setY(0).normalize();
+            }
+        } else {
+            atkMoveDir = null;
+        }
 
         Runnable applyKb = () -> {
             Vector dir;
             if (atk != null) {
-                dir = vic.getLocation().toVector().subtract(atk.getLocation().toVector()).setY(0).normalize();
+                Vector diff = vic.getLocation().toVector().subtract(atk.getLocation().toVector()).setY(0);
+                dir = (diff.lengthSquared() > 0.0001) ? diff.normalize() : new Vector(0, 0, 0);
             } else if (damager != null) {
-                dir = vic.getLocation().toVector().subtract(damager.getLocation().toVector()).setY(0).normalize();
+                Vector diff = vic.getLocation().toVector().subtract(damager.getLocation().toVector()).setY(0);
+                dir = (diff.lengthSquared() > 0.0001) ? diff.normalize() : new Vector(0, 0, 0);
             } else { dir = new Vector(0, 0, 0); }
 
             engine.decay();
@@ -173,7 +186,12 @@ public class PvpListener implements Listener {
             // directionnal bonuses
             if (atk != null) {
                 Vector atkDir = atk.getLocation().getDirection().clone().setY(0).normalize();
-                Vector toVic = vic.getLocation().toVector().subtract(atk.getLocation().toVector()).setY(0).normalize();
+                Vector toVic = vic.getLocation().toVector().subtract(atk.getLocation().toVector()).setY(0);
+                if (toVic.lengthSquared() > 0.0001) {
+                    toVic.normalize();
+                } else {
+                    toVic = new Vector(0, 0, 0);
+                }
                 double dot = atkDir.dot(toVic);
                 if (dot < -0.3) h += p.backBoost;
                 else if (Math.abs(dot) < 0.4) h += p.sideBoost;
@@ -186,11 +204,10 @@ public class PvpListener implements Listener {
             if (y < p.minY) y = p.minY;
             kb.setY(y);
 
-            if (atkVelocity != null && atkLookDir != null) {
-                Vector moveVec = atkVelocity.clone().setY(0);
-                double speed = moveVec.length();
+            if (atkVelocity != null && atkLookDir != null && atkMoveDir != null) {
+                double speed = atkVelocity.clone().setY(0).length();
                 if (speed > 0.001) {
-                    Vector moveDir = moveVec.clone().normalize();
+                    Vector moveDir = atkMoveDir.clone();
                     double frontal = atkLookDir.dot(moveDir);
                     if (frontal > 0.5) {
                         kb.add(moveDir.multiply(speed * 0.25));
@@ -236,7 +253,8 @@ public class PvpListener implements Listener {
     }
 
     private Vector getPlayerDirectionalInput(Player player) {
-        return player.getLocation().getDirection().setY(0).normalize();
+        Vector dir = player.getLocation().getDirection().setY(0);
+        return (dir.lengthSquared() > 0.0001) ? dir.normalize() : new Vector(0, 0, 0);
     }
 
     private boolean wouldFallIntoVoid(Player player, Vector kb) {

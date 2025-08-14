@@ -1,6 +1,6 @@
 # PvpEnhancer
 
-Version **3.0.0**
+Version **3.0.1**
 
 PvpEnhancer provides adaptive, context-aware knockback powered by an intelligent engine with contextual impact physics for Spigot/Paper 1.21 servers.
 
