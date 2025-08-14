@@ -14,6 +14,7 @@ public class IntelligentEngine {
 
     public static class Profile {
         public double baseH, baseV, minY, clampY, airMultH, airMultV, sideBoost, backBoost;
+        public double influenceStrength;
     }
 
     private static final double NEUTRAL_BASE_H = 0.40;
@@ -27,6 +28,8 @@ public class IntelligentEngine {
 
     private final PvPEnhancerPlugin plugin;
     private Profile smooth;
+    private double baseInfluenceStrength = 0.15;
+    private double maxIaAdjustment = 0.10;
 
     private String currentGameMode = "DEFAULT";
 
@@ -64,6 +67,12 @@ public class IntelligentEngine {
         this.smooth.airMultV = NEUTRAL_AIR_MULT_V;
         this.smooth.sideBoost = NEUTRAL_SIDE_BOOST;
         this.smooth.backBoost = NEUTRAL_BACK_BOOST;
+
+        FileConfiguration cfg = plugin.getConfig();
+        boolean diEnabled = cfg.getBoolean("directional-influence.enabled", true);
+        this.baseInfluenceStrength = diEnabled ? cfg.getDouble("directional-influence.base-influence-strength", 0.15) : 0.0;
+        this.maxIaAdjustment = cfg.getDouble("directional-influence.max-ia-adjustment", 0.10);
+        this.smooth.influenceStrength = this.baseInfluenceStrength;
     }
 
     /**
@@ -79,6 +88,11 @@ public class IntelligentEngine {
         this.wallProximityWeight = c.getDouble("intelligent-kb.detector.wall-proximity-weight", 0.6);
         this.switchThreshold = c.getDouble("intelligent-kb.detector.switch-threshold", 8.0);
         this.decayPerSecond = c.getDouble("intelligent-kb.detector.decay-per-second", 1.0);
+
+        boolean diEnabled = c.getBoolean("directional-influence.enabled", true);
+        this.baseInfluenceStrength = diEnabled ? c.getDouble("directional-influence.base-influence-strength", 0.15) : 0.0;
+        this.maxIaAdjustment = c.getDouble("directional-influence.max-ia-adjustment", 0.10);
+        this.smooth.influenceStrength = this.baseInfluenceStrength;
     }
 
     /**
@@ -105,6 +119,7 @@ public class IntelligentEngine {
         smooth.airMultV = smooth.airMultV + alpha * (target.airMultV - smooth.airMultV);
         smooth.sideBoost= smooth.sideBoost+ alpha * (target.sideBoost- smooth.sideBoost);
         smooth.backBoost= smooth.backBoost+ alpha * (target.backBoost- smooth.backBoost);
+        smooth.influenceStrength = smooth.influenceStrength + alpha * (target.influenceStrength - smooth.influenceStrength);
     }
 
     /**
@@ -145,6 +160,10 @@ public class IntelligentEngine {
         target.airMultV = NEUTRAL_AIR_MULT_V;
         target.sideBoost = NEUTRAL_SIDE_BOOST;
         target.backBoost = NEUTRAL_BACK_BOOST;
+
+        double accNorm = (accuracyRatio / 100.0) - 0.5; // -0.5 to 0.5
+        double adj = Math.max(-maxIaAdjustment, Math.min(maxIaAdjustment, accNorm * 2 * maxIaAdjustment));
+        target.influenceStrength = Math.max(0.0, baseInfluenceStrength + adj);
 
         applyEma(target, this.emaAlpha); // Smooth transition towards new target values.
     }
