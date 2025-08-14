@@ -146,6 +146,7 @@ public class PvpListener implements Listener {
         final IntelligentEngine engine = plugin.getEngineForPlayer(victimPlayer);
         final Player atk = attacker;
         final Entity damager = e.getDamager();
+        final Vector playerInputVector = getPlayerDirectionalInput(victimPlayer);
 
         Runnable applyKb = () -> {
             Vector dir;
@@ -182,9 +183,18 @@ public class PvpListener implements Listener {
             if (y < p.minY) y = p.minY;
             kb.setY(y);
 
-            vic.setVelocity(base.add(kb));
+            double influence = p.influenceStrength;
+            Vector finalKb = kb.clone().multiply(1.0 - influence)
+                    .add(playerInputVector.clone().multiply(kb.length() * influence));
+            finalKb.setY(kb.getY());
+
+            vic.setVelocity(base.add(finalKb));
         };
 
         Bukkit.getScheduler().runTask(plugin, applyKb);
+    }
+
+    private Vector getPlayerDirectionalInput(Player player) {
+        return player.getLocation().getDirection().setY(0).normalize();
     }
 }

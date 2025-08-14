@@ -18,6 +18,13 @@ intelligent-kb:
     switch-threshold: 8.0
     decay-per-second: 1.0
 
+directional-influence:
+  enabled: true
+  # L'influence de base (0.0 = aucun contrôle, 1.0 = contrôle total)
+  base-influence-strength: 0.15 # 15% d'influence de base
+  # Comment l'IA peut moduler cette force (multiplicateur)
+  max-ia-adjustment: 0.10 # L'IA pourra ajouter ou retirer jusqu'à 10% de force
+
 # QOL
 fall-damage: false
 disable-item-drops: true
