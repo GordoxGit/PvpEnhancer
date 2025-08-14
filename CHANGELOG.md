@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.2.1
+- Implémentation du "Guidage par Intention" permettant de sculpter le knockback selon les mouvements de la caméra.
+
 ## 2.2.0
 - Le son de dégât subi par la victime est désormais dynamique et suit le rythme du combo de l'attaquant.
 - Suppression complète de la mécanique d'attaque de balayage ("swoosh").

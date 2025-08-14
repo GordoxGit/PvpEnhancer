@@ -30,6 +30,15 @@ rhythm-resonance:
   # La déviation maximale (en % de la force du KB) pour un coup 0% pur
   max-deviation-factor: 0.10
 
+intent-vectoring:
+  enabled: true
+  # Force de conversion de KB horizontal en vertical par degré de pitch
+  vertical-sculpt-factor: 0.02
+  # Force de déviation latérale par degré de yaw
+  horizontal-sculpt-factor: 0.015
+  # Seuil minimal de delta pour activer la mécanique
+  activation-threshold: 1.5
+
 # QOL
 fall-damage: false
 disable-item-drops: true
