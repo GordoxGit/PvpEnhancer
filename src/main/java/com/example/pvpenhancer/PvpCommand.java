@@ -24,7 +24,7 @@ public class PvpCommand implements CommandExecutor, TabCompleter {
     private void help(CommandSender s) {
         s.sendMessage(ChatColor.GOLD + "=== PvPEnhancer v1.4.0 ===");
         s.sendMessage(ChatColor.YELLOW + "/pvp admin" + ChatColor.GRAY + " - menu admin (ON/OFF + mode AUTO/HIKABRAIN/ARENA)");
-        s.sendMessage(ChatColor.YELLOW + "/pvp reload" + ChatColor.GRAY + " - reload config & presets");
+        s.sendMessage(ChatColor.YELLOW + "/pvp reload" + ChatColor.GRAY + " - reload config");
         s.sendMessage(ChatColor.YELLOW + "/pvp mode <auto|hikabrain|arena>" + ChatColor.GRAY + " - force le mode");
         s.sendMessage(ChatColor.YELLOW + "/pvp info" + ChatColor.GRAY + " - état courant");
     }

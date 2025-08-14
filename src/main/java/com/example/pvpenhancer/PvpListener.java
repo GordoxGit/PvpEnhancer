@@ -157,7 +157,7 @@ public class PvpListener implements Listener {
 
             engine.decay();
             engine.onHitContext(vic, vic, dir);
-            PresetManager.Profile p = engine.active();
+            IntelligentEngine.Profile p = engine.active();
             if (p == null) return;
 
             Vector base = vic.getVelocity().multiply(0.90); // friction légère
