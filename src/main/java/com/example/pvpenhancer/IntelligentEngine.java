@@ -10,6 +10,10 @@ import org.bukkit.util.Vector;
 
 import java.util.Locale;
 
+/**
+ * Computes knockback behavior for a single player.
+ * Instances of this engine are managed per-player by the plugin.
+ */
 public class IntelligentEngine {
 
     public enum Mode { AUTO, HIKABRAIN, ARENA }

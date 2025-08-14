@@ -6,10 +6,13 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 public class PvPEnhancerPlugin extends JavaPlugin {
 
@@ -21,11 +24,16 @@ public class PvPEnhancerPlugin extends JavaPlugin {
     private PvpListener pvpListener;
     private AdminMenu adminMenu;
 
+    private PresetManager presets;
+    private final Map<UUID, IntelligentEngine> playerEngines = new HashMap<>();
+
     @Override
     public void onEnable() {
         instance = this;
         saveDefaultConfig();
         reloadLocal();
+
+        presets = new PresetManager(getDataFolder());
 
         pvpListener = new PvpListener(this);
         getServer().getPluginManager().registerEvents(pvpListener, this);
@@ -43,6 +51,7 @@ public class PvPEnhancerPlugin extends JavaPlugin {
             if (isWorldAllowed(p.getWorld())) {
                 pvpListener.applyAttackSpeed(p);
                 pvpListener.applyMaxNoDamageTicks(p);
+                getEngineForPlayer(p);
             }
         }
 
@@ -65,6 +74,28 @@ public class PvPEnhancerPlugin extends JavaPlugin {
             if (!allowEverywhere && allowedWorlds.isEmpty()) allowEverywhere = true;
         } else allowEverywhere = true;
         debug = cfg.getBoolean("debug", false);
+    }
+
+    public IntelligentEngine getEngineForPlayer(Player player) {
+        return playerEngines.computeIfAbsent(player.getUniqueId(), uuid -> {
+            IntelligentEngine engine = new IntelligentEngine(this, presets);
+            engine.load(getConfig());
+            return engine;
+        });
+    }
+
+    public void removeEngineForPlayer(Player player) {
+        playerEngines.remove(player.getUniqueId());
+    }
+
+    public IntelligentEngine anyEngine() {
+        return playerEngines.values().stream().findFirst().orElse(null);
+    }
+
+    public void reloadAllEngines() {
+        for (IntelligentEngine engine : playerEngines.values()) {
+            engine.load(getConfig());
+        }
     }
 
     public boolean isWorldAllowed(World w) {
