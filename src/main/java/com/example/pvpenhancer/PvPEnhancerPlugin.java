@@ -24,7 +24,6 @@ public class PvPEnhancerPlugin extends JavaPlugin {
     private PvpListener pvpListener;
     private AdminMenu adminMenu;
 
-    private PresetManager presets;
     private final Map<UUID, IntelligentEngine> playerEngines = new HashMap<>();
 
     @Override
@@ -32,8 +31,6 @@ public class PvPEnhancerPlugin extends JavaPlugin {
         instance = this;
         saveDefaultConfig();
         reloadLocal();
-
-        presets = new PresetManager(getDataFolder());
 
         pvpListener = new PvpListener(this);
         getServer().getPluginManager().registerEvents(pvpListener, this);
@@ -78,7 +75,7 @@ public class PvPEnhancerPlugin extends JavaPlugin {
 
     public IntelligentEngine getEngineForPlayer(Player player) {
         return playerEngines.computeIfAbsent(player.getUniqueId(), uuid -> {
-            IntelligentEngine engine = new IntelligentEngine(this, presets);
+            IntelligentEngine engine = new IntelligentEngine(this);
             engine.load(getConfig());
             return engine;
         });
