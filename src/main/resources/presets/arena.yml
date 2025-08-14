@@ -1,5 +1,0 @@
-# Profils Arena (équilibrés, vertical un peu plus haut)
-profiles:
-  - { baseH: 0.39, baseV: 0.28, minY: 0.10, clampY: 0.34, airMultH: 1.04, airMultV: 0.85, sideBoost: 0.04, backBoost: 0.06 }
-  - { baseH: 0.40, baseV: 0.30, minY: 0.12, clampY: 0.36, airMultH: 1.03, airMultV: 0.86, sideBoost: 0.04, backBoost: 0.07 }
-  - { baseH: 0.38, baseV: 0.29, minY: 0.11, clampY: 0.35, airMultH: 1.05, airMultV: 0.84, sideBoost: 0.03, backBoost: 0.06 }

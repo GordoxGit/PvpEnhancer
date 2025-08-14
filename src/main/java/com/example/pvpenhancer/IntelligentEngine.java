@@ -7,8 +7,8 @@ import org.bukkit.util.Vector;
 import java.util.Locale;
 
 /**
- * Computes knockback behavior for a single player.
- * Instances of this engine are managed per-player by the plugin.
+ * Manages the PvP profile for a single player and computes adaptive knockback
+ * values based on the player's combat performance.
  */
 public class IntelligentEngine {
 
@@ -66,6 +66,11 @@ public class IntelligentEngine {
         this.smooth.backBoost = NEUTRAL_BACK_BOOST;
     }
 
+    /**
+     * Loads configuration parameters used to control the adaptive knockback engine.
+     *
+     * @param c configuration section from the plugin config
+     */
     public void load(FileConfiguration c) {
         this.emaAlpha = c.getDouble("intelligent-kb.ema-alpha", 0.30);
 
@@ -76,6 +81,12 @@ public class IntelligentEngine {
         this.decayPerSecond = c.getDouble("intelligent-kb.detector.decay-per-second", 1.0);
     }
 
+    /**
+     * Sets the current PvP game mode for this player. The mode influences how
+     * aggressively knockback values are scaled.
+     *
+     * @param mode name of the mode such as "FACTION" or "DUEL"
+     */
     public void setCurrentGamemode(String mode) {
         if (mode == null || mode.isEmpty()) {
             this.currentGameMode = "DEFAULT";
@@ -96,6 +107,10 @@ public class IntelligentEngine {
         smooth.backBoost= smooth.backBoost+ alpha * (target.backBoost- smooth.backBoost);
     }
 
+    /**
+     * Recalculates the target knockback values based on the player's current
+     * accuracy, combo and selected game mode.
+     */
     private void updateKnockbackProfile() {
         Profile target = new Profile();
 
@@ -116,9 +131,11 @@ public class IntelligentEngine {
         }
 
         double acc = accuracyRatio / 100.0;
+        // Reduce horizontal knockback when accuracy is high to keep pressure on the defender.
         double baseHModifier = 1.0 - ((acc - 0.5) * 0.1 * scalingFactor); // -5% to +5%
         target.baseH = NEUTRAL_BASE_H * baseHModifier;
 
+        // Reward high combos with a slight boost to vertical knockback.
         double baseVModifier = 1.0 + (Math.min(currentCombo, 10) * 0.01 * scalingFactor); // +0% to +10%
         target.baseV = NEUTRAL_BASE_V * baseVModifier;
 
@@ -129,9 +146,13 @@ public class IntelligentEngine {
         target.sideBoost = NEUTRAL_SIDE_BOOST;
         target.backBoost = NEUTRAL_BACK_BOOST;
 
-        applyEma(target, this.emaAlpha);
+        applyEma(target, this.emaAlpha); // Smooth transition towards new target values.
     }
 
+    /**
+     * Applies decay to tracked metrics and refreshes the knockback profile at
+     * a regular interval.
+     */
     public void decay() {
         long now = System.currentTimeMillis();
         double secs = (now - lastTickDecay) / 1000.0;
@@ -142,6 +163,13 @@ public class IntelligentEngine {
         }
     }
 
+    /**
+     * Placeholder for future context-based adjustments each time an entity is hit.
+     *
+     * @param attacker entity that caused the hit
+     * @param victim entity that was hit
+     * @param dir direction vector of the hit
+     */
     public void onHitContext(LivingEntity attacker, LivingEntity victim, Vector dir) {
         // future use for more advanced context-based adjustments
     }
@@ -153,12 +181,18 @@ public class IntelligentEngine {
         updateAccuracy();
     }
 
+    /**
+     * Records a swing and updates accuracy metrics.
+     */
     public void recordSwing() {
         decay();
         swingCount++;
         updateAccuracy();
     }
 
+    /**
+     * Records a successful hit, refreshing accuracy and combo counters.
+     */
     public void recordHit() {
         decay();
         hitCount++;
@@ -181,6 +215,12 @@ public class IntelligentEngine {
         lastHitTime = now;
     }
 
+    /**
+     * Builds a human-readable summary of the player's current PvP metrics.
+     *
+     * @param player player name
+     * @return formatted summary string
+     */
     public String settingsSummary(String player) {
         Profile p = active();
         String kb = "";
@@ -197,5 +237,10 @@ public class IntelligentEngine {
                 "§f(Debug) Hits/Swings: §7" + hitCount + "/" + swingCount;
     }
 
+    /**
+     * Retrieves the smoothed knockback profile currently in effect for the player.
+     *
+     * @return active profile instance
+     */
     public Profile active() { return smooth; }
 }
