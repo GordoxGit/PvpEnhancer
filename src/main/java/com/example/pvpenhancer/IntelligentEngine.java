@@ -56,6 +56,9 @@ public class IntelligentEngine {
     // mobility metrics (future use)
     private double averageDistancePerSecond = 0.0;
 
+    // track directional influence performance
+    private int successfulInfluenceSaves = 0;
+
     public IntelligentEngine(PvPEnhancerPlugin plugin) {
         this.plugin = plugin;
         this.smooth = new Profile();
@@ -161,9 +164,13 @@ public class IntelligentEngine {
         target.sideBoost = NEUTRAL_SIDE_BOOST;
         target.backBoost = NEUTRAL_BACK_BOOST;
 
-        double accNorm = (accuracyRatio / 100.0) - 0.5; // -0.5 to 0.5
-        double adj = Math.max(-maxIaAdjustment, Math.min(maxIaAdjustment, accNorm * 2 * maxIaAdjustment));
-        target.influenceStrength = Math.max(0.0, baseInfluenceStrength + adj);
+        double baseStrength = this.baseInfluenceStrength;
+        double maxAdjustment = this.maxIaAdjustment;
+        double bonus = this.successfulInfluenceSaves * 0.005; // 0.5% per save
+        if (bonus > maxAdjustment) {
+            bonus = maxAdjustment;
+        }
+        target.influenceStrength = Math.max(0.0, baseStrength + bonus);
 
         applyEma(target, this.emaAlpha); // Smooth transition towards new target values.
     }
@@ -197,6 +204,7 @@ public class IntelligentEngine {
         double factor = Math.pow(0.9, secs / 30.0); // 10% decay every 30s
         swingCount = (int) Math.round(swingCount * factor);
         hitCount = (int) Math.round(hitCount * factor);
+        successfulInfluenceSaves = (int) Math.round(successfulInfluenceSaves * Math.pow(0.99, secs));
         updateAccuracy();
     }
 
@@ -217,6 +225,12 @@ public class IntelligentEngine {
         hitCount++;
         updateAccuracy();
         updateCombo();
+    }
+
+    public void recordInfluenceSave() {
+        decay();
+        successfulInfluenceSaves++;
+        updateKnockbackProfile();
     }
 
     private void updateAccuracy() {
@@ -247,7 +261,8 @@ public class IntelligentEngine {
             kb = "§fProfil KB: §abaseH=" + String.format(Locale.US, "%.3f", p.baseH) +
                  " §abaseV=" + String.format(Locale.US, "%.3f", p.baseV) +
                  " §aairH=" + String.format(Locale.US, "%.3f", p.airMultH) +
-                 " §aairV=" + String.format(Locale.US, "%.3f", p.airMultV) + "\n";
+                 " §aairV=" + String.format(Locale.US, "%.3f", p.airMultV) +
+                 " §ainfluence=" + String.format(Locale.US, "%.3f", p.influenceStrength) + "\n";
         }
         return "§e=== Stats PvP de " + player + " ===\n" +
                 "§fPrécision: §a" + String.format(Locale.US, "%.1f", accuracyRatio) + "%\n" +

@@ -142,7 +142,7 @@ public class PvpListener implements Listener {
 
         final LivingEntity vic = victim;
         if (!(vic instanceof Player)) return;
-        Player victimPlayer = (Player) vic;
+        final Player victimPlayer = (Player) vic;
         final IntelligentEngine engine = plugin.getEngineForPlayer(victimPlayer);
         final Player atk = attacker;
         final Entity damager = e.getDamager();
@@ -188,7 +188,17 @@ public class PvpListener implements Listener {
                     .add(playerInputVector.clone().multiply(kb.length() * influence));
             finalKb.setY(kb.getY());
 
+            boolean wouldVoid = wouldFallIntoVoid(victimPlayer, kb);
+
             vic.setVelocity(base.add(finalKb));
+
+            if (wouldVoid) {
+                Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                    if (!victimPlayer.isDead() && victimPlayer.getLocation().getY() > 0) {
+                        engine.recordInfluenceSave();
+                    }
+                }, 20L);
+            }
         };
 
         Bukkit.getScheduler().runTask(plugin, applyKb);
@@ -196,5 +206,19 @@ public class PvpListener implements Listener {
 
     private Vector getPlayerDirectionalInput(Player player) {
         return player.getLocation().getDirection().setY(0).normalize();
+    }
+
+    private boolean wouldFallIntoVoid(Player player, Vector kb) {
+        Vector horiz = kb.clone().setY(0);
+        if (horiz.lengthSquared() < 0.001) return false;
+        Location target = player.getLocation().clone().add(horiz.normalize().multiply(3));
+        World w = player.getWorld();
+        int y = target.getBlockY();
+        for (int i = 0; i < 5 && y - i >= w.getMinHeight(); i++) {
+            if (!w.getBlockAt(target.getBlockX(), y - i, target.getBlockZ()).getType().isAir()) {
+                return false;
+            }
+        }
+        return true;
     }
 }
