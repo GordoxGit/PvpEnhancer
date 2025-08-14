@@ -26,7 +26,7 @@ public class PvpListener implements Listener {
     private boolean fallDamageOff;
     private boolean disableDrops;
     private boolean ensureDamage; private double ensureMinHearts;
-    private boolean feelCombo;    private String soundHit; private String soundVictim; private String particles;
+    private boolean feelCombo;    private String soundHit; private String soundVictim; private String particles; private boolean overrideVanillaSounds;
     private boolean dynamicAudioEnabled; private float dynamicBasePitch; private float dynamicPitchPerHit; private float dynamicMaxPitch;
 
     private boolean intelligentKb;
@@ -53,6 +53,7 @@ public class PvpListener implements Listener {
         soundHit = c.getString("feel.hit-sound", "ENTITY_PLAYER_ATTACK_STRONG");
         soundVictim = c.getString("feel.victim-sound", "ENTITY_PLAYER_HURT");
         particles = c.getString("feel.particles", "CRIT");
+        overrideVanillaSounds = c.getBoolean("feel.override-vanilla-sounds", true);
         dynamicAudioEnabled = c.getBoolean("feel.dynamic-audio.enabled", true);
         dynamicBasePitch = (float) c.getDouble("feel.dynamic-audio.base-pitch", 0.9);
         dynamicPitchPerHit = (float) c.getDouble("feel.dynamic-audio.pitch-per-combo-hit", 0.05);
@@ -77,7 +78,7 @@ public class PvpListener implements Listener {
     // QoL apply
     public void applyAttackSpeed(Player p) {
         AttributeInstance inst = p.getAttribute(Attribute.GENERIC_ATTACK_SPEED);
-        if (inst != null) inst.setBaseValue(16.0);
+        if (inst != null) inst.setBaseValue(1024.0);
     }
     public void applyMaxNoDamageTicks(Player p) {
         p.setMaximumNoDamageTicks(8);
@@ -107,6 +108,13 @@ public class PvpListener implements Listener {
     }
 
     @EventHandler
+    public void onSweepAttack(EntityDamageByEntityEvent e) {
+        if (e.getCause() == EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK) {
+            e.setCancelled(true);
+        }
+    }
+
+    @EventHandler
     public void onSwing(PlayerAnimationEvent e) {
         if (!intelligentKb) return;
         if (e.getAnimationType() == PlayerAnimationType.ARM_SWING) {
@@ -118,6 +126,7 @@ public class PvpListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onDamage(EntityDamageByEntityEvent e) {
         if (!(e.getEntity() instanceof LivingEntity victim)) return;
+        if (e.getCause() == EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK) return;
         if (!intelligentKb) return;
 
         Player attacker = null;
@@ -147,9 +156,6 @@ public class PvpListener implements Listener {
             }
         }
 
-        if (soundVictim != null && !soundVictim.isEmpty()) {
-            try { victim.getWorld().playSound(victim.getLocation(), Sound.valueOf(soundVictim), 1f, 1f); } catch (IllegalArgumentException ignored) {}
-        }
         if (particles != null && !particles.isEmpty()) {
             try { victim.getWorld().spawnParticle(Particle.valueOf(particles), victim.getLocation().add(0,1,0), 6, 0.15,0.15,0.15, 0.01); } catch (IllegalArgumentException ignored) {}
         }
@@ -177,6 +183,30 @@ public class PvpListener implements Listener {
         if (ensureDamage) {
             double min = Math.max(0.0, ensureMinHearts * 2.0);
             if (e.getDamage() < min) e.setDamage(min);
+        }
+
+        if (overrideVanillaSounds) {
+            double finalDamage = e.getFinalDamage();
+            e.setCancelled(true);
+            double newHealth = victim.getHealth() - finalDamage;
+            if (newHealth < 0) newHealth = 0;
+            victim.setHealth(newHealth);
+
+            if (soundVictim != null && !soundVictim.isEmpty()) {
+                float calculatedPitch = 1f;
+                if (dynamicAudioEnabled && atkEngine != null) {
+                    int comboCount = atkEngine.getCurrentCombo() - 1;
+                    if (comboCount < 0) comboCount = 0;
+                    calculatedPitch = dynamicBasePitch + (comboCount * dynamicPitchPerHit);
+                    if (calculatedPitch > dynamicMaxPitch) {
+                        calculatedPitch = dynamicMaxPitch;
+                    }
+                }
+                try {
+                    Sound victimSound = Sound.valueOf(soundVictim);
+                    victim.getWorld().playSound(victim.getLocation(), victimSound, 1.0f, calculatedPitch);
+                } catch (IllegalArgumentException ignored) {}
+            }
         }
 
         final LivingEntity vic = victim;
