@@ -27,6 +27,7 @@ public class PvpListener implements Listener {
     private boolean disableDrops;
     private boolean ensureDamage; private double ensureMinHearts;
     private boolean feelCombo;    private String soundHit; private String soundVictim; private String particles;
+    private boolean dynamicAudioEnabled; private float dynamicBasePitch; private float dynamicPitchPerHit; private float dynamicMaxPitch;
 
     private boolean intelligentKb;
 
@@ -52,6 +53,10 @@ public class PvpListener implements Listener {
         soundHit = c.getString("feel.hit-sound", "ENTITY_PLAYER_ATTACK_STRONG");
         soundVictim = c.getString("feel.victim-sound", "ENTITY_PLAYER_HURT");
         particles = c.getString("feel.particles", "CRIT");
+        dynamicAudioEnabled = c.getBoolean("feel.dynamic-audio.enabled", true);
+        dynamicBasePitch = (float) c.getDouble("feel.dynamic-audio.base-pitch", 0.9);
+        dynamicPitchPerHit = (float) c.getDouble("feel.dynamic-audio.pitch-per-combo-hit", 0.05);
+        dynamicMaxPitch = (float) c.getDouble("feel.dynamic-audio.max-pitch", 1.6);
 
         intelligentKb = c.getBoolean("intelligent-kb.enabled", true);
         rhythmResonanceEnabled = c.getBoolean("rhythm-resonance.enabled", true);
@@ -124,8 +129,9 @@ public class PvpListener implements Listener {
 
         double purityScore = 1.0;
         long now = System.currentTimeMillis();
+        IntelligentEngine atkEngine = null;
         if (attacker != null) {
-            IntelligentEngine atkEngine = plugin.getEngineForPlayer(attacker);
+            atkEngine = plugin.getEngineForPlayer(attacker);
             long last = atkEngine.getLastHitTimestamp();
             long interval = (last > 0) ? (now - last) : 0;
             if (last > 0 && interval < 2000) {
@@ -148,9 +154,24 @@ public class PvpListener implements Listener {
             try { victim.getWorld().spawnParticle(Particle.valueOf(particles), victim.getLocation().add(0,1,0), 6, 0.15,0.15,0.15, 0.01); } catch (IllegalArgumentException ignored) {}
         }
 
-        if (attacker != null && feelCombo) {
-            try { attacker.playSound(attacker.getLocation(), Sound.valueOf(soundHit), 0.7f, 1.05f); } catch (IllegalArgumentException ignored) {}
-            attacker.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(ChatColor.GOLD + "✦"));
+        if (attacker != null) {
+            if (dynamicAudioEnabled && soundHit != null && !soundHit.isEmpty() && atkEngine != null) {
+                int comboCount = atkEngine.getCurrentCombo() - 1;
+                if (comboCount < 0) comboCount = 0;
+                float calculatedPitch = dynamicBasePitch + (comboCount * dynamicPitchPerHit);
+                if (calculatedPitch > dynamicMaxPitch) {
+                    calculatedPitch = dynamicMaxPitch;
+                }
+                try {
+                    Sound hitSound = Sound.valueOf(soundHit);
+                    attacker.playSound(attacker.getLocation(), hitSound, 0.8f, calculatedPitch);
+                } catch (IllegalArgumentException ignored) {}
+            } else if (feelCombo && soundHit != null && !soundHit.isEmpty()) {
+                try { attacker.playSound(attacker.getLocation(), Sound.valueOf(soundHit), 0.7f, 1.05f); } catch (IllegalArgumentException ignored) {}
+            }
+            if (feelCombo) {
+                attacker.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(ChatColor.GOLD + "✦"));
+            }
         }
 
         if (ensureDamage) {
