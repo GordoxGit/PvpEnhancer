@@ -28,6 +28,8 @@ public class IntelligentEngine {
     private final PvPEnhancerPlugin plugin;
     private Profile smooth;
 
+    private String currentGameMode = "DEFAULT";
+
     // detector (unused for now but kept for future balancing)
     private int belowAirCheck = 4;
     private double hitWeightNearVoid = 2.0;
@@ -74,6 +76,14 @@ public class IntelligentEngine {
         this.decayPerSecond = c.getDouble("intelligent-kb.detector.decay-per-second", 1.0);
     }
 
+    public void setCurrentGamemode(String mode) {
+        if (mode == null || mode.isEmpty()) {
+            this.currentGameMode = "DEFAULT";
+        } else {
+            this.currentGameMode = mode.toUpperCase(Locale.ROOT);
+        }
+    }
+
     private void applyEma(Profile target, double alpha) {
         if (smooth == null) smooth = new Profile();
         smooth.baseH    = smooth.baseH    + alpha * (target.baseH    - smooth.baseH);
@@ -89,11 +99,27 @@ public class IntelligentEngine {
     private void updateKnockbackProfile() {
         Profile target = new Profile();
 
+        double scalingFactor = 1.0;
+        switch (this.currentGameMode) {
+            case "FACTION":
+                scalingFactor = 0.25;
+                break;
+            case "HIKABRAIN":
+                scalingFactor = 0.5;
+                break;
+            case "DUEL":
+            case "TRAINING":
+                scalingFactor = 1.2;
+                break;
+            default:
+                break;
+        }
+
         double acc = accuracyRatio / 100.0;
-        double baseHModifier = 1.0 - ((acc - 0.5) * 0.1); // -5% to +5%
+        double baseHModifier = 1.0 - ((acc - 0.5) * 0.1 * scalingFactor); // -5% to +5%
         target.baseH = NEUTRAL_BASE_H * baseHModifier;
 
-        double baseVModifier = 1.0 + (Math.min(currentCombo, 10) * 0.01); // +0% to +10%
+        double baseVModifier = 1.0 + (Math.min(currentCombo, 10) * 0.01 * scalingFactor); // +0% to +10%
         target.baseV = NEUTRAL_BASE_V * baseVModifier;
 
         target.minY = NEUTRAL_MIN_Y;
