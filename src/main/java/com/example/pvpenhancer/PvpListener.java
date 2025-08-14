@@ -29,15 +29,11 @@ public class PvpListener implements Listener {
     private boolean feelCombo;    private String soundHit; private String soundVictim; private String particles;
 
     private boolean intelligentKb;
-    private IntelligentEngine engine;
-    private PresetManager presets;
 
     private boolean debug;
 
     public PvpListener(PvPEnhancerPlugin plugin) {
         this.plugin = plugin;
-        this.presets = new PresetManager(plugin.getDataFolder());
-        this.engine = new IntelligentEngine(plugin, presets);
         loadCfg();
     }
 
@@ -56,7 +52,7 @@ public class PvpListener implements Listener {
         particles = c.getString("feel.particles", "CRIT");
 
         intelligentKb = c.getBoolean("intelligent-kb.enabled", true);
-        engine.load(c);
+        plugin.reloadAllEngines();
 
         debug = c.getBoolean("debug", false);
     }
@@ -64,7 +60,9 @@ public class PvpListener implements Listener {
     public boolean isIntelligentEnabled() { return intelligentKb; }
 
     public String settingsSummary() {
-        return "intel=" + intelligentKb + " mode=" + engine.getMode() + "/" + engine.resolvedMode();
+        IntelligentEngine engine = plugin.anyEngine();
+        String mode = engine != null ? engine.getMode() + "/" + engine.resolvedMode() : "N/A";
+        return "intel=" + intelligentKb + " mode=" + mode;
     }
 
     public void setIntelligentMode(String m) {
@@ -82,7 +80,15 @@ public class PvpListener implements Listener {
         p.setMaximumNoDamageTicks(8);
     }
 
-    @EventHandler public void onJoin(PlayerJoinEvent e) { applyAttackSpeed(e.getPlayer()); applyMaxNoDamageTicks(e.getPlayer()); }
+    @EventHandler public void onJoin(PlayerJoinEvent e) {
+        applyAttackSpeed(e.getPlayer());
+        applyMaxNoDamageTicks(e.getPlayer());
+        plugin.getEngineForPlayer(e.getPlayer());
+    }
+    @EventHandler public void onQuit(PlayerQuitEvent e) {
+        plugin.removeEngineForPlayer(e.getPlayer());
+        plugin.getLogger().info("Removed engine for " + e.getPlayer().getName());
+    }
     @EventHandler public void onRespawn(PlayerRespawnEvent e) {
         Bukkit.getScheduler().runTaskLater(plugin, () -> { applyAttackSpeed(e.getPlayer()); applyMaxNoDamageTicks(e.getPlayer()); }, 1L);
     }
@@ -126,8 +132,11 @@ public class PvpListener implements Listener {
             if (e.getDamage() < min) e.setDamage(min);
         }
 
-        final Player atk = attacker;
         final LivingEntity vic = victim;
+        if (!(vic instanceof Player)) return;
+        Player victimPlayer = (Player) vic;
+        final IntelligentEngine engine = plugin.getEngineForPlayer(victimPlayer);
+        final Player atk = attacker;
         final Entity damager = e.getDamager();
 
         Runnable applyKb = () -> {
