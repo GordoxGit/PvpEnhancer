@@ -50,7 +50,12 @@ public class PvpCommand implements CommandExecutor, TabCompleter {
                 return true;
             }
             case "info": {
-                sender.sendMessage(ChatColor.YELLOW + listener.settingsSummary());
+                if (!(sender instanceof org.bukkit.entity.Player player)) {
+                    sender.sendMessage(ChatColor.RED + "Commande réservée aux joueurs");
+                    return true;
+                }
+                IntelligentEngine engine = plugin.getEngineForPlayer(player);
+                sender.sendMessage(engine.settingsSummary(player.getName()).split("\n"));
                 return true;
             }
             default: help(sender); return true;

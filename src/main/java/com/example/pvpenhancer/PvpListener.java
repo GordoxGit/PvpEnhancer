@@ -59,12 +59,6 @@ public class PvpListener implements Listener {
 
     public boolean isIntelligentEnabled() { return intelligentKb; }
 
-    public String settingsSummary() {
-        IntelligentEngine engine = plugin.anyEngine();
-        String mode = engine != null ? engine.getMode() + "/" + engine.resolvedMode() : "N/A";
-        return "intel=" + intelligentKb + " mode=" + mode;
-    }
-
     public void setIntelligentMode(String m) {
         plugin.getConfig().set("intelligent-kb.mode", m.toUpperCase());
         plugin.saveConfig();
@@ -103,6 +97,15 @@ public class PvpListener implements Listener {
         if (disableDrops) e.setCancelled(true);
     }
 
+    @EventHandler
+    public void onSwing(PlayerAnimationEvent e) {
+        if (!intelligentKb) return;
+        if (e.getAnimationType() == PlayerAnimationType.ARM_SWING) {
+            IntelligentEngine engine = plugin.getEngineForPlayer(e.getPlayer());
+            engine.recordSwing();
+        }
+    }
+
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onDamage(EntityDamageByEntityEvent e) {
         if (!(e.getEntity() instanceof LivingEntity victim)) return;
@@ -113,6 +116,11 @@ public class PvpListener implements Listener {
         else if (e.getDamager() instanceof Projectile proj) {
             ProjectileSource ps = proj.getShooter();
             if (ps instanceof Player p) attacker = p;
+        }
+
+        if (attacker != null) {
+            IntelligentEngine atkEngine = plugin.getEngineForPlayer(attacker);
+            atkEngine.recordHit();
         }
 
         if (soundVictim != null && !soundVictim.isEmpty()) {

@@ -1,8 +1,6 @@
 package com.example.pvpenhancer;
 
 import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.LivingEntity;
@@ -31,9 +29,20 @@ public class IntelligentEngine {
     private double decayPerSecond = 1.0;
     private double emaAlpha = 0.30;
 
-    private double scoreHika = 0.0;
-    private double scoreArena = 0.0;
     private long lastTickDecay = System.currentTimeMillis();
+
+    // precision metrics
+    private int swingCount = 0;
+    private int hitCount = 0;
+    private double accuracyRatio = 0.0; // percentage
+
+    // combat metrics
+    private int currentCombo = 0;
+    private int highestCombo = 0;
+    private long lastHitTime = 0;
+
+    // mobility metrics (future use)
+    private double averageDistancePerSecond = 0.0;
 
     private Mode mode = Mode.AUTO;
     private String resolvedMode = "ARENA";
@@ -118,9 +127,8 @@ public class IntelligentEngine {
         long now = System.currentTimeMillis();
         double secs = (now - lastTickDecay) / 1000.0;
         if (secs > 0.2) {
-            scoreHika = Math.max(0, scoreHika - decayPerSecond*secs);
-            scoreArena = Math.max(0, scoreArena - decayPerSecond*secs);
             lastTickDecay = now;
+            updateMetrics(secs);
             if (now - lastHitMs > resampleMs) { pickNewPreset(); lastHitMs = now; }
             applyEma(emaAlpha);
         }
@@ -128,40 +136,49 @@ public class IntelligentEngine {
 
     public void onHitContext(LivingEntity attacker, LivingEntity victim, Vector dir) {
         lastHitMs = System.currentTimeMillis();
-
-        if (mode == Mode.AUTO) {
-            if (airBelow(victim.getLocation(), belowAirCheck) >= 2 ||
-                airBelow(attacker.getLocation(), belowAirCheck) >= 2) {
-                scoreHika += hitWeightNearVoid;
-            } else scoreArena += 1.0;
-
-            try {
-                org.bukkit.util.RayTraceResult rt = victim.getWorld().rayTraceBlocks(
-                        victim.getLocation().add(0,1,0),
-                        dir.clone().normalize(),
-                        2.5);
-                if (rt != null) scoreArena += wallProximityWeight;
-            } catch (Throwable ignored) {}
-
-            double diff = scoreHika - scoreArena;
-            String newResolved = resolvedMode;
-            if (diff > switchThreshold) newResolved = "HIKABRAIN";
-            else if (-diff > switchThreshold) newResolved = "ARENA";
-            if (!newResolved.equals(resolvedMode)) {
-                resolvedMode = newResolved;
-                pickNewPreset();
-            }
-        }
     }
 
-    private int airBelow(Location loc, int max) {
-        int air = 0;
-        Location c = loc.clone();
-        for (int i = 0; i < max; i++) {
-            c.subtract(0,1,0);
-            if (c.getBlock().getType() == Material.AIR) air++; else break;
+    private void updateMetrics(double secs) {
+        // decay swing and hit counts so that accuracy reflects recent performance
+        double factor = Math.pow(0.9, secs / 30.0); // 10% decay every 30s
+        swingCount = (int) Math.round(swingCount * factor);
+        hitCount = (int) Math.round(hitCount * factor);
+        updateAccuracy();
+    }
+
+    public void recordSwing() {
+        decay();
+        swingCount++;
+        updateAccuracy();
+    }
+
+    public void recordHit() {
+        decay();
+        hitCount++;
+        updateAccuracy();
+        updateCombo();
+    }
+
+    private void updateAccuracy() {
+        this.accuracyRatio = swingCount > 0 ? (hitCount * 100.0) / swingCount : 0.0;
+    }
+
+    private void updateCombo() {
+        long now = System.currentTimeMillis();
+        if (now - lastHitTime <= 3000) {
+            currentCombo++;
+        } else {
+            currentCombo = 1;
         }
-        return air;
+        if (currentCombo > highestCombo) highestCombo = currentCombo;
+        lastHitTime = now;
+    }
+
+    public String settingsSummary(String player) {
+        return "§e=== Stats PvP de " + player + " ===\n" +
+                "§fPrécision: §a" + String.format(Locale.US, "%.1f", accuracyRatio) + "%\n" +
+                "§fMeilleur Combo: §a" + highestCombo + "\n" +
+                "§f(Debug) Hits/Swings: §7" + hitCount + "/" + swingCount;
     }
 
     public PresetManager.Profile active() { return smooth != null ? smooth : current; }
