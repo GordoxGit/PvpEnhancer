@@ -95,6 +95,7 @@ public class IntelligentEngine {
         }
     }
     public double getPlayerTempo() { return playerTempo; }
+    public int getCurrentCombo() { return currentCombo; }
 
     /**
      * Loads configuration parameters used to control the adaptive knockback engine.

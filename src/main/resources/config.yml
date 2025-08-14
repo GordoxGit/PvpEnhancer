@@ -44,5 +44,10 @@ feel:
   victim-sound: ENTITY_PLAYER_HURT
   particles: CRIT
   combo-actionbar: false
+  dynamic-audio:
+    enabled: true
+    base-pitch: 0.9
+    pitch-per-combo-hit: 0.05
+    max-pitch: 1.6
 
 debug: false
