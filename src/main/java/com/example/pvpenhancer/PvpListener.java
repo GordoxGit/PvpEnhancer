@@ -147,6 +147,9 @@ public class PvpListener implements Listener {
         final Player atk = attacker;
         final Entity damager = e.getDamager();
         final Vector playerInputVector = getPlayerDirectionalInput(victimPlayer);
+        final double attackCooldown = (attacker != null) ? attacker.getAttackCooldown() : 1.0;
+        final Vector atkVelocity = (attacker != null) ? attacker.getVelocity().clone() : null;
+        final Vector atkLookDir = (attacker != null) ? attacker.getLocation().getDirection().clone().setY(0).normalize() : null;
 
         Runnable applyKb = () -> {
             Vector dir;
@@ -183,9 +186,37 @@ public class PvpListener implements Listener {
             if (y < p.minY) y = p.minY;
             kb.setY(y);
 
+            if (atkVelocity != null && atkLookDir != null) {
+                Vector moveVec = atkVelocity.clone().setY(0);
+                double speed = moveVec.length();
+                if (speed > 0.001) {
+                    Vector moveDir = moveVec.clone().normalize();
+                    double frontal = atkLookDir.dot(moveDir);
+                    if (frontal > 0.5) {
+                        kb.add(moveDir.multiply(speed * 0.25));
+                    } else if (Math.abs(frontal) <= 0.3) {
+                        Vector lateral = moveDir.clone().subtract(atkLookDir.clone().multiply(frontal));
+                        if (lateral.lengthSquared() > 1e-4) {
+                            lateral.normalize();
+                            kb.add(lateral.multiply(speed * 0.2));
+                        }
+                    } else if (frontal < -0.3) {
+                        kb.multiply(0.85);
+                    }
+                }
+            }
+
             double influence = p.influenceStrength;
             Vector finalKb = kb.clone().multiply(1.0 - influence)
                     .add(playerInputVector.clone().multiply(kb.length() * influence));
+
+            if (attackCooldown < 0.8) {
+                double spamFactor = 0.8 - attackCooldown;
+                double randX = (Math.random() - 0.5) * spamFactor * 0.2 * kb.length();
+                double randZ = (Math.random() - 0.5) * spamFactor * 0.2 * kb.length();
+                finalKb.add(new Vector(randX, 0, randZ));
+            }
+
             finalKb.setY(kb.getY());
 
             boolean wouldVoid = wouldFallIntoVoid(victimPlayer, kb);

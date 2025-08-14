@@ -1,8 +1,8 @@
 # PvpEnhancer
 
-Version **2.0.0**
+Version **3.0.0**
 
-PvpEnhancer provides adaptive, per-player knockback powered by an intelligent engine for Spigot/Paper 1.21 servers.
+PvpEnhancer provides adaptive, context-aware knockback powered by an intelligent engine with contextual impact physics for Spigot/Paper 1.21 servers.
 
 ## Features
 
