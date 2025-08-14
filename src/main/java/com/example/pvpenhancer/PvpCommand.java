@@ -1,10 +1,12 @@
 package com.example.pvpenhancer;
 
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
+import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -25,7 +27,7 @@ public class PvpCommand implements CommandExecutor, TabCompleter {
         s.sendMessage(ChatColor.GOLD + "=== PvPEnhancer v1.4.0 ===");
         s.sendMessage(ChatColor.YELLOW + "/pvp admin" + ChatColor.GRAY + " - menu admin (ON/OFF + mode AUTO/HIKABRAIN/ARENA)");
         s.sendMessage(ChatColor.YELLOW + "/pvp reload" + ChatColor.GRAY + " - reload config");
-        s.sendMessage(ChatColor.YELLOW + "/pvp mode <auto|hikabrain|arena>" + ChatColor.GRAY + " - force le mode");
+        s.sendMessage(ChatColor.YELLOW + "/pvp mode <joueur> <mode>" + ChatColor.GRAY + " - force le mode d'un joueur");
         s.sendMessage(ChatColor.YELLOW + "/pvp info" + ChatColor.GRAY + " - état courant");
     }
 
@@ -43,10 +45,21 @@ public class PvpCommand implements CommandExecutor, TabCompleter {
                 return true;
             }
             case "mode": {
-                if (!sender.hasPermission("pvpe.admin")) { sender.sendMessage(ChatColor.RED + "Permission pvpe.admin"); return true; }
-                if (args.length < 2) { sender.sendMessage(ChatColor.RED + "Usage: /pvp mode <auto|hikabrain|arena>"); return true; }
-                listener.setIntelligentMode(args[1]);
-                sender.sendMessage(ChatColor.GREEN + "Mode intelligent: " + args[1].toUpperCase());
+                if (!sender.hasPermission("pvpe.admin")) {
+                    sender.sendMessage(ChatColor.RED + "Permission pvpe.admin");
+                    return true;
+                }
+                if (args.length < 3) {
+                    sender.sendMessage(ChatColor.RED + "Usage: /pvp mode <joueur> <mode>");
+                    return true;
+                }
+                Player target = Bukkit.getPlayer(args[1]);
+                if (target == null) {
+                    sender.sendMessage(ChatColor.RED + "Joueur introuvable");
+                    return true;
+                }
+                PvpEnhancerAPI.setPlayerGamemode(target, args[2]);
+                sender.sendMessage(ChatColor.GREEN + "Mode pour " + target.getName() + ": " + args[2].toUpperCase());
                 return true;
             }
             case "info": {
@@ -65,7 +78,14 @@ public class PvpCommand implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) return Arrays.asList("help","admin","reload","mode","info");
-        if (args.length == 2 && args[0].equalsIgnoreCase("mode")) return Arrays.asList("auto","hikabrain","arena");
+        if (args.length == 2 && args[0].equalsIgnoreCase("mode")) {
+            List<String> names = new ArrayList<>();
+            for (Player p : Bukkit.getOnlinePlayers()) names.add(p.getName());
+            return names;
+        }
+        if (args.length == 3 && args[0].equalsIgnoreCase("mode")) {
+            return Arrays.asList("FACTION", "HIKABRAIN", "DUEL", "TRAINING", "DEFAULT");
+        }
         return new ArrayList<>();
     }
 }
