@@ -42,6 +42,7 @@ ensure-hit-damage:
 feel:
   hit-sound: ENTITY_PLAYER_ATTACK_STRONG
   victim-sound: ENTITY_PLAYER_HURT
+  override-vanilla-sounds: true
   particles: CRIT
   combo-actionbar: false
   dynamic-audio:
