@@ -1,4 +1,7 @@
-plugins { java }
+plugins {
+  java
+  id("checkstyle")
+}
 group = "com.example"
 version = "2.2.1"
 
